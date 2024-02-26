@@ -1,20 +1,28 @@
-#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
 
-void func3(){
-    std::cout << "function 3" << std::endl;    
+void bar()
+{
+    puts("entered the bar ;)");
+    exit(0);
 }
 
-void func2(){
-    std::cout << "function 2" << std::endl;    
-    func3();
+void** search(void** addr, void* value) __attribute__((noinline));
+void** search(void** addr, void* value)
+{
+    while(*addr != value) addr++;
+    return addr;
 }
 
-void func1(){
-    std::cout << "function 1" << std::endl;    
-    func2();
+void foo() __attribute__((noinline));
+void foo()
+{
+    void** p = search((void**)&p, __builtin_return_address(0));
+    *p = (void *) bar;
 }
 
-int main(){
-    func1();
+int main()
+{
+    foo();
     return 0;
 }

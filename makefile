@@ -1,10 +1,14 @@
-CC = /home/kamel/cybersecurity-project/llvm-project/build/bin/clang++ 
-LD = /home/kamel/cybersecurity-project/llvm-project/build/bin/ld.lld
-AR = /home/kamel/cybersecurity-project/llvm-project/build/bin/llvm-ar
+LLVM_BIN ?= /change/to/llvm/bin/path
+SYSROOT_DIR ?= /change/to/aarch64-linux-gnu/sysroot/directory
+QARMA64_LIB ?= /change/to/qarma64/lib/path
 
-CFLAGS     = --target=aarch64-linux-gnu --sysroot=$(HOME)/cybersecurity-project/qemu-arm64-machine/debian/aarch64-sysroot/
-INC_FLAGS  = -I./include -I/home/kamel/cybersecurity-project/qarma64/include
-LIB_FLAGS  = -L/home/kamel/cybersecurity-project/qarma64/build/lib/ -lQarma64
+CC = $(LLVM_BIN)/clang++ 
+LD = $(LLVM_BIN)/clang++
+AR = $(LLVM_BIN)/llvm-ar
+
+CFLAGS     = --target=aarch64-linux-gnu --sysroot=$(SYSROOT_DIR) 
+INC_FLAGS  = -I./include -I$(QARMA64_LIB)/../include
+LIB_FLAGS  = -L$(QARMA64_LIB) -lQarma64
 LDFLAGS    = 
 # LDFLAGS    = -Wall -Os -Wl 	-Map
 
@@ -13,23 +17,32 @@ BUILD_DIR = ./build
 OBJS_DIR  = $(BUILD_DIR)/objs
 BIN_DIR   = $(BUILD_DIR)/bin
 
-TARGET    = program
+PROTECTED   = program_protected
+UNPROTECTED = program_unprotected 
 
 SRC_FILES     = $(wildcard $(SRC_DIR)/*.cpp)
-OBJ_FILES     = $(patsubst $(SRC_DIR)/%.cpp, $(OBJS_DIR)/%.o, $(SRC_FILES))
+PROTECTED_OBJ_FILES       = $(patsubst $(SRC_DIR)/%.cpp, $(OBJS_DIR)/protected/%.o, $(SRC_FILES))
+UNPROTECTED_OBJ_FILES     = $(patsubst $(SRC_DIR)/%.cpp, $(OBJS_DIR)/unprotected/%.o, $(SRC_FILES))
 DEPENDENCIES  = $(OBJ_FILES:.o=.d)
 
 .PHONY: all info clean
 
-all : $(BIN_DIR)/$(TARGET)
+all : $(BIN_DIR)/$(PROTECTED) $(BIN_DIR)/$(UNPROTECTED)
 
 # Build rules
-$(BIN_DIR)/$(TARGET): $(OBJ_FILES)
+$(BIN_DIR)/$(PROTECTED): $(PROTECTED_OBJ_FILES)
 	@mkdir -p $(BIN_DIR)	
-	$(CC) $(CFLAGS) $(LIB_FLAGS) $(INC_FLAGS) -fuse-ld=lld -o $@ $^
+	$(CC) $(CFLAGS) $(LIB_FLAGS) $(INC_FLAGS) -fuse-ld=lld -o $@ $^		
 
+$(BIN_DIR)/$(UNPROTECTED): $(UNPROTECTED_OBJ_FILES)
+	@mkdir -p $(BIN_DIR)	
+	$(CC) $(CFLAGS) $(LIB_FLAGS) $(INC_FLAGS) -fuse-ld=lld -o $@ $^	
 
-$(OBJS_DIR)/%.o: $(SRC_DIR)/%.cpp
+$(OBJS_DIR)/protected/%.o: $(SRC_DIR)/%.cpp
+	@mkdir -p $(@D)	
+	$(CC) $(CFLAGS) $(INC_FLAGS) -mllvm -pa-emu -c -o $@ $< 
+
+$(OBJS_DIR)/unprotected/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(@D)	
 	$(CC) $(CFLAGS) $(INC_FLAGS) -c -o $@ $< 
 
